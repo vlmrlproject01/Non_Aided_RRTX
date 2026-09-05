@@ -11,7 +11,7 @@ import heapq
 
 np.random.seed(42)
 
-# CONFIGURATION CONSTANTS
+# Main planner and map settings
 
 MAP_MIN_X = -15.0
 MAP_MAX_X = 15.0
@@ -22,7 +22,7 @@ GRID_RESOLUTION = 0.05
 
 ROBOT_RADIUS = 0.105        
 SAFETY_MARGIN = 0.08
-INFLATION_RADIUS = ROBOT_RADIUS + SAFETY_MARGIN   # ~0.185m
+INFLATION_RADIUS = ROBOT_RADIUS + SAFETY_MARGIN   # total clearance around the robot is about 0.185 m
 
 STEP_SIZE = 0.5
 NEIGHBOR_RADIUS = 1.2
@@ -32,7 +32,7 @@ MAX_TREE_NODES = 800
 
 
 
-# OCCUPANCY GRID -- shape-agnostic obstacle representation
+# Occupancy grid used to store obstacles from the map and LiDAR
 
 class OccupancyGrid2D:
     
@@ -43,8 +43,8 @@ class OccupancyGrid2D:
         self.origin_y = min_y
         self.width = max(1, int((max_x - min_x) / resolution))
         self.height = max(1, int((max_y - min_y) / resolution))
-        self.raw = np.zeros((self.height, self.width), dtype=bool)       # true = occupied
-        self.inflated = np.zeros((self.height, self.width), dtype=bool)  # used for collision checks
+        self.raw = np.zeros((self.height, self.width), dtype=bool)       # True means this cell contains an obstacle
+        self.inflated = np.zeros((self.height, self.width), dtype=bool)  # inflated version is used when checking for collisions
 
     def world_to_grid(self, x: float, y: float) -> Tuple[int, int]:
         gx = int((x - self.origin_x) / self.resolution)
@@ -147,7 +147,7 @@ def preload_static_circle(grid: OccupancyGrid2D, center: Tuple[float, float], ra
 
 
 
-# RRTX NODE & PLANNER
+# RRTX node and planner implementation
 
 class RRTXNode:
     def __init__(self, position: Tuple[float, float]):
@@ -166,7 +166,7 @@ class RRTX:
     def __init__(self, start: Tuple[float, float], goal: Tuple[float, float], grid: OccupancyGrid2D):
         self.start_pos = start
         self.goal_pos = goal
-        self.grid = grid  # reference -- the node mutates grid.raw/inflated in place
+        self.grid = grid  # keep a reference to the same grid so map updates are shared
 
         self.nodes: List[RRTXNode] = []
         self.goal_node = RRTXNode(goal)
